@@ -6,7 +6,7 @@
 /*   By: safernan <safernan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/18 13:01:14 by safernan          #+#    #+#             */
-/*   Updated: 2021/10/18 16:04:01 by safernan         ###   ########.fr       */
+/*   Updated: 2021/10/20 13:20:58 by safernan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,7 @@ void	error(char *str)
 {
 	if (str)
 		free(str);
-	ft_putstr_color_fd(ANSI_COLOR_RED,
-		"client: unexpected error.\n", 2);
+	ft_putstr_fd("client >> erreur.\n", 2);
 	exit(EXIT_FAILURE);
 }
 
@@ -33,6 +32,7 @@ int	send_null(int pid, char *str)
 	}
 	return (1);
 }
+
 int	send_bit(int pid, char *str)
 {
 	static char	*message = 0;
@@ -71,14 +71,12 @@ void	handler_sigusr(int signum)
 		end = send_bit(0, 0);
 	else if (signum == SIGUSR2)
 	{
-		ft_putstr_color_fd(ANSI_COLOR_RED,
-			"client: server ended unexpectdly.\n", 2);
+		ft_putstr_fd("client >> Stop. Erreur \n", 2);
 		exit(EXIT_FAILURE);
 	}
 	if (end)
 	{
-		ft_putstr_color_fd(ANSI_COLOR_GREEN,
-			"client: operation successful.\n", 1);
+		ft_putstr_fd("client >> Operation reussie\n", 1);
 		exit(EXIT_SUCCESS);
 	}
 }
@@ -87,10 +85,8 @@ int	main(int argc, char **argv)
 {
 	if (argc != 3 || !ft_str_isnumeric(argv[1]))
 	{
-		ft_putstr_color_fd(ANSI_COLOR_RED,
-			"client: invalid arguments.\n", 2);
-		ft_putstr_color_fd(ANSI_COLOR_YELLOW,
-			"correct format: [./client <PID> <STR>].\n", 2);
+		ft_putstr_fd("client >> arguments invalides\n", 2);
+		ft_putstr_fd("format: [./client <PID> <STR>\n", 2);
 		exit(EXIT_FAILURE);
 	}
 	signal(SIGUSR1, handler_sigusr);
