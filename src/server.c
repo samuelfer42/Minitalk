@@ -6,72 +6,61 @@
 /*   By: safernan <safernan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/18 13:01:39 by safernan          #+#    #+#             */
-/*   Updated: 2021/10/20 13:21:41 by safernan         ###   ########.fr       */
+/*   Updated: 2021/10/27 21:04:25 by safernan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minitalk.h"
 
-void	error(int pid, char *str)
+static void	print_and_send(siginfo_t *sa)
 {
-	if (str)
-		free(str);
-	ft_putstr_fd("server >> erreur.\n", 2);
-	kill(pid, SIGUSR2);
-	exit(EXIT_FAILURE);
+	write(STDOUT_FILENO, "\n", 1);
+	kill(sa->si_pid, SIGUSR1);
 }
 
-char	*print_string(char *message)
+void	handler(int sig, siginfo_t *sa, void *context)
 {
-	ft_putstr_fd(message, 1);
-	free(message);
-	return (NULL);
-}
-
-void	handler_sigusr(int signum, siginfo_t *info, void *context)
-{
-	static char	c = 0xFF;
-	static int	bits = 0;
-	static int	pid = 0;
-	static char	*message = 0;
+	static unsigned int		count;
+	static unsigned char	c;
+	char					mask;
 
 	(void)context;
-	if (info->si_pid)
-		pid = info->si_pid;
-	if (signum == SIGUSR1)
-		c ^= 0x80 >> bits;
-	else if (signum == SIGUSR2)
-		c |= 0x80 >> bits;
-	if (++bits == 8)
+	if (count > 7)
 	{
-		if (c)
-			message = add_c(message, c);
-		else
-			message = print_string(message);
-		bits = 0;
-		c = 0xFF;
+		count = 0;
+		c = 0;
 	}
-	if (kill(pid, SIGUSR1) == -1)
-		error(pid, message);
+	mask = 1 << count;
+	if (sig == SIGUSR1)
+		c = c | mask;
+	if (sig == SIGUSR2)
+		c = c & ~mask;
+	count++;
+	if (count == 8)
+	{
+		if (c == 0)
+			print_and_send(sa);
+		ft_putchar(c);
+	}
+	kill(sa->si_pid, SIGUSR2);
 }
 
-int	main(void)
+int	main(int argc, char *argv[])
 {
-	struct sigaction	sa_signal;
-	sigset_t			block_mask;
+	int					pid;
+	struct sigaction	sa;
 
-	sigemptyset(&block_mask);
-	sigaddset(&block_mask, SIGINT);
-	sigaddset(&block_mask, SIGQUIT);
-	sa_signal.sa_handler = 0;
-	sa_signal.sa_flags = SA_SIGINFO;
-	sa_signal.sa_mask = block_mask;
-	sa_signal.sa_sigaction = handler_sigusr;
-	sigaction(SIGUSR1, &sa_signal, NULL);
-	sigaction(SIGUSR2, &sa_signal, NULL);
-	ft_putstr_fd("PID: ", 1);
-	ft_putnbr_fd(getpid(), 1);
-	ft_putstr_fd("\n", 1);
+	if (argc > 1 || !argv)
+		return (write(1, "Un seul parametre est autorise\n", 32), 0);
+	sa.sa_sigaction = &handler;
+	sa.sa_flags = SA_SIGINFO;
+	pid = getpid();
+	write(1, "PID: ", 5);
+	ft_putnbr(pid);
+	write(1, "\n", 1);
+	sigaction(SIGUSR1, &sa, NULL);
+	sigaction(SIGUSR2, &sa, NULL);
 	while (1)
 		pause();
+	return (0);
 }
